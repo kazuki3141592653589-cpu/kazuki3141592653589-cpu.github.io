@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ドーパミン・クリックゲーム</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;font-family:system-ui,sans-serif;
+  background:radial-gradient(circle at 50% 35%,#26345c,#0b1020 65%);
+  color:white;display:flex;align-items:center;justify-content:center;overflow:hidden
+}
+#game{width:min(700px,94vw);text-align:center}
+h1{font-size:clamp(28px,7vw,52px);margin:0 0 8px}
+#sub{opacity:.75;margin-bottom:18px}
+.stats{display:flex;justify-content:space-around;gap:8px;margin:12px 0 18px}
+.card{background:#ffffff12;border:1px solid #ffffff22;border-radius:16px;padding:10px 18px;min-width:100px}
+.num{font-size:26px;font-weight:800}
+.label{font-size:12px;opacity:.7}
+#arena{
+  position:relative;height:min(58vh,430px);min-height:320px;
+  border-radius:28px;background:#ffffff0b;border:2px solid #ffffff1c;
+  overflow:hidden;box-shadow:0 20px 70px #0007
+}
+#target{
+  position:absolute;width:74px;height:74px;border:0;border-radius:50%;
+  cursor:pointer;display:none;color:white;font-size:24px;font-weight:900;
+  background:radial-gradient(circle at 35% 30%,#fff,#ffdc52 12%,#ff7a18 48%,#e52d66 80%);
+  box-shadow:0 0 20px #ffbd4a,0 0 55px #ff4f8b;
+  transform:translate(-50%,-50%);transition:transform .045s
+}
+#target:active{transform:translate(-50%,-50%) scale(.82)}
+#start{
+  margin-top:20px;border:0;border-radius:18px;padding:15px 28px;
+  font-size:18px;font-weight:800;cursor:pointer;background:#fff;color:#111
+}
+#msg{height:34px;font-size:20px;font-weight:800;margin-top:12px}
+.particle{position:absolute;pointer-events:none;font-weight:900;font-size:22px;animation:pop .65s ease-out forwards}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-110px) scale(1.25);opacity:0}}
+.flash{position:absolute;inset:0;pointer-events:none;background:white;opacity:0}
+@keyframes flash{0%{opacity:.3}100%{opacity:0}}
+
+.combo-hot{animation:comboPulse .18s ease-out}
+@keyframes comboPulse{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+<div id="game">
+  <h1>⚡ DOPAMINE RUSH</h1>
+  <div id="sub">光るターゲットをタップ！連続成功でコンボ！</div>
+
+  <div class="stats">
+    <div class="card"><div class="num" id="score">0</div><div class="label">SCORE</div></div>
+    <div class="card"><div class="num" id="combo">0</div><div class="label">COMBO</div></div>
+    <div class="card"><div class="num" id="time">20.0</div><div class="label">TIME</div></div>
+  </div>
+
+  <div id="arena">
+    <button id="target">+1</button>
+    <div class="flash" id="flash"></div>
+  </div>
+  <div id="msg">準備OK？</div>
+  <button id="start">▶ スタート</button>
+</div>
+
+<script>
+const arena=document.getElementById("arena");
+const target=document.getElementById("target");
+const scoreEl=document.getElementById("score");
+const comboEl=document.getElementById("combo");
+const timeEl=document.getElementById("time");
+const msg=document.getElementById("msg");
+const start=document.getElementById("start");
+const flash=document.getElementById("flash");
+
+let score=0,combo=0,time=20,playing=false,last=0;
+let multiplier=1, bonusUntil=0, audioCtx=null, comboSound=0;
+
+function audio(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+}
+function beep(freq,dur=.08,type="sine",vol=.05){
+  audio();
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.value=Math.min(vol*2.2,.16);
+  o.connect(g);g.connect(audioCtx.destination);
+  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);
+  o.start();o.stop(audioCtx.currentTime+dur);
+}
+function soundHit(){
+  comboSound++;
+  const base=360+Math.min(comboSound,12)*35;
+  beep(base,.055,"sine",.045);
+  setTimeout(()=>beep(base*1.45,.07,"triangle",.045),35);
+}
+function soundCombo(n){
+  const notes=[392,494,587,659,784,988];
+  const count=Math.min(3+Math.floor(n/5),6);
+  for(let i=0;i<count;i++) setTimeout(()=>beep(notes[i],.11,"triangle",.05),i*65);
+}
+function soundClear(n){
+  const notes=[220,277,330,440,554,660,880];
+  const count=Math.min(3+n,7);
+  for(let i=0;i<count;i++) setTimeout(()=>beep(notes[i],.12,"square",.035),i*48);
+}
+function soundPerfect(){
+  [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,.14,"triangle",.05),i*55));
+}
+function soundBonus(){
+  [440,660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,.1,"square",.045),i*55));
+}
+function soundBig(){
+  [330,440,660,880,1320].forEach((f,i)=>setTimeout(()=>beep(f,.13,"sawtooth",.045),i*70));
+}
+
+const messages=["NICE!","GOOD!","AWESOME!","PERFECT!","🔥 COMBO!","気持ちいい！"];
+
+function moveTarget(){
+  targetColor(combo);
+  const r=arena.getBoundingClientRect();
+  const pad=44;
+  target.style.left=(pad+Math.random()*(r.width-pad*2))+"px";
+  target.style.top=(pad+Math.random()*(r.height-pad*2))+"px";
+  target.style.display="block";
+
+  // コンボが増えるほどターゲットの出現テンポを高速化
+  const speed = combo>=20 ? 35 : combo>=10 ? 55 : combo>=5 ? 80 : 115;
+  target.style.transition=`transform ${Math.max(0.025,speed/1800)}s`;
+  target.animate(
+    [{filter:"brightness(1.15)",transform:"translate(-50%,-50%) scale(.82)"},
+     {filter:"brightness(1.7)",transform:"translate(-50%,-50%) scale(1)"}],
+    {duration:speed,easing:"cubic-bezier(.2,.8,.2,1)"}
+  );
+}
+
+function particle(x,y,text){
+  const p=document.createElement("div");
+  p.className="particle";p.textContent=text;
+  p.style.left=x+"px";p.style.top=y+"px";
+  arena.appendChild(p);setTimeout(()=>p.remove(),650);
+}
+
+function targetColor(n){
+  const colors=[
+    ["#63b3ff","#246bff"], // 0
+    ["#65f6b5","#12b96b"], // 3
+    ["#ffe66b","#ffad24"], // 6
+    ["#ff9b62","#ff4d3d"], // 9
+    ["#ff6bd6","#b82dff"], // 12
+    ["#8b7cff","#4b35ff"], // 15
+  ];
+  const c=colors[Math.min(Math.floor(n/3),colors.length-1)];
+  target.style.background=`radial-gradient(circle at 35% 30%,#fff 0 10%,${c[0]} 22%,${c[1]} 72%,#111 100%)`;
+  target.style.boxShadow=`0 0 18px ${c[0]},0 0 50px ${c[1]}`;
+  if(n>=18){
+    const hue=(performance.now()/3)%360;
+    target.style.background=`radial-gradient(circle at 35% 30%,#fff 0 10%,hsl(${hue},100%,70%) 25%,hsl(${hue+70},100%,55%) 72%,#111 100%)`;
+    target.style.boxShadow=`0 0 20px hsl(${hue},100%,70%),0 0 55px hsl(${hue+70},100%,55%)`;
+  }
+}
+function comboColor(n){
+  const colors=[
+    "#ffffff","#6cf6ff","#65a7ff","#9b7cff","#e66cff",
+    "#ff5edc","#ff5e7a","#ff9b3d","#ffe45c","#8cff66"
+  ];
+  const i=Math.min(Math.floor(n/2),colors.length-1);
+  comboEl.style.color=colors[i];
+  comboEl.classList.remove("combo-hot");
+  void comboEl.offsetWidth;
+  comboEl.classList.add("combo-hot");
+  if(n>=10){
+    comboEl.style.textShadow=`0 0 12px ${colors[i]},0 0 28px ${colors[i]}`;
+  }else comboEl.style.textShadow="";
+}
+function randomBonus(x,y){
+  const roll=Math.random();
+  if(roll>.20)return;
+  if(roll<.08){
+    multiplier=5;bonusUntil=performance.now()+4000;
+    msg.textContent="💎 超レア ×5！";
+    particle(x,y,"💎 ×5");
+    soundBig();
+  }else if(roll<.15){
+    time=Math.min(time+3,30);
+    msg.textContent="⏱️ TIME +3秒！";
+    particle(x,y,"+3秒");
+    soundBonus();
+  }else{
+    multiplier=2;bonusUntil=performance.now()+5000;
+    msg.textContent="⚡ ×2 BONUS！";
+    particle(x,y,"×2");
+    soundBonus();
+  }
+}
+
+target.addEventListener("pointerdown",e=>{
+  if(!playing)return;
+  const rect=arena.getBoundingClientRect();
+  const x=e.clientX-rect.left,y=e.clientY-rect.top;
+  combo++;
+  comboColor(combo);
+  if(performance.now()>bonusUntil)multiplier=1;
+  const points=Math.min(combo,10)*multiplier;
+  score+=points;
+  scoreEl.textContent=score;
+  comboEl.textContent=combo;
+  timeEl.textContent=Math.max(0,time).toFixed(1);
+  if(multiplier===1) msg.textContent=combo>=5?messages[4]+" x"+Math.min(combo,10):messages[Math.min(combo-1,5)];
+  particle(x,y,"+"+points);
+  soundHit();
+  if(combo>=5){
+    msg.textContent = combo>=20 ? "🔥🔥 ULTRA SPEED!" : combo>=10 ? "⚡ SPEED UP!" : "🏃 SPEED UP!";
+  }
+  if(combo%5===0){
+    soundCombo(combo);
+    msg.textContent="🔥 COMBO x"+combo;
+    particle(x,y,"COMBO!");
+  }
+  if(combo%10===0){
+    soundClear(Math.floor(combo/10));
+    score+=50;
+    scoreEl.textContent=score;
+    msg.textContent="💥 CLEAR BONUS +50!";
+    particle(x,y,"+50");
+  }
+  if(Math.random()<0.035){
+    soundPerfect();
+    score+=100;
+    scoreEl.textContent=score;
+    msg.textContent="✨ PERFECT +100!";
+    particle(x,y,"+100");
+  }
+  randomBonus(x,y);
+  flash.style.animation="none";void flash.offsetWidth;flash.style.animation="flash .18s ease-out";
+  moveTarget();
+});
+
+function end(){
+  playing=false;target.style.display="none";
+  msg.textContent=`終了！ ${score}ポイント 🎉`;
+  start.textContent="↻ もう一回";
+  beep(330,.12);setTimeout(()=>beep(220,.2),120);
+}
+
+function tick(now){
+  if(!playing)return;
+  if(!last)last=now;
+  time-=(now-last)/1000;last=now;
+  if(performance.now()>bonusUntil)multiplier=1;
+  timeEl.textContent=Math.max(0,time).toFixed(1);
+  if(time<=0){end();return}
+  requestAnimationFrame(tick);
+}
+
+start.onclick=()=>{
+  audio();score=0;combo=0;time=20;last=0;multiplier=1;bonusUntil=0;comboSound=0;playing=true;
+  scoreEl.textContent=0;comboEl.textContent=0;comboEl.style.color="#ffffff";targetColor(0);comboEl.style.textShadow="";timeEl.textContent="20.0";
+  msg.textContent="GO! ⚡";start.textContent="プレイ中…";
+  beep(660,.1);setTimeout(()=>beep(990,.12),90);
+  moveTarget();requestAnimationFrame(tick);
+};
+document.addEventListener("keydown",e=>{if(e.code==="Space"&&!playing)start.click()});
+</script>
+</body>
+</html>
