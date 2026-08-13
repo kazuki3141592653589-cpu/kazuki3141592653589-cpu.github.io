@@ -301,13 +301,6 @@
   // Web Audio Context
   let audioCtx = null;
 
-  const scale = [
-    261.63, 293.66, 329.63, 392.00, 440.00,
-    523.25, 587.33, 659.25, 783.99, 880.00,
-    1046.50, 1174.66, 1318.51, 1567.98, 1760.00
-  ];
-
-  // タップ時に確実にAudioContextを活性化
   function unlockAudio() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -317,85 +310,59 @@
     }
   }
 
+  // もとの初期サウンド処理（シンプル音仕様）
   function playSound(type) {
     if (!audioCtx) return;
     if (audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
 
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
     const now = audioCtx.currentTime;
 
     if (type === 'hit') {
-      const noteIndex = Math.min(combo, scale.length - 1);
-      const freq = scale[noteIndex];
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
+      // 通常ヒット（コンボで少し高くなるピッチ）
+      const pitch = Math.min(1200, 440 + combo * 30);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq * 1.8, now);
-      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.03);
-
-      gain.gain.setValueAtTime(0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(pitch * 1.5, now + 0.08);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
       osc.start(now);
-      osc.stop(now + 0.12);
-
+      osc.stop(now + 0.08);
     } else if (type === 'gold') {
-      [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(f, now + idx * 0.04);
-
-        gain.gain.setValueAtTime(0.3, now + idx * 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.2);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start(now + idx * 0.04);
-        osc.stop(now + idx * 0.04 + 0.2);
-      });
-
-    } else if (type === 'bomb') {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
-
-      gain.gain.setValueAtTime(0.7, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
+      // 金ターゲット音（チャイム風）
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.setValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
       osc.start(now);
-      osc.stop(now + 0.3);
-
+      osc.stop(now + 0.25);
+    } else if (type === 'bomb') {
+      // 爆弾ヒット音
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
     } else if (type === 'finish') {
-      const notes = [440, 554.37, 659.25, 880];
-      notes.forEach((f, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(f, now + i * 0.08);
-
-        gain.gain.setValueAtTime(0.4, now + i * 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start(now + i * 0.08);
-        osc.stop(now + i * 0.08 + 0.3);
-      });
+      // タイムアップ音
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.1);
+      osc.frequency.setValueAtTime(783.99, now + 0.2);
+      osc.frequency.setValueAtTime(1046.50, now + 0.3);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.5);
     }
   }
 
