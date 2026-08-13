@@ -67,7 +67,6 @@
       text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
     }
 
-    /* ハイスコアバー（追加） */
     .hiscore-bar {
       font-size: 0.75rem;
       color: #ffd700;
@@ -133,20 +132,48 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      font-size: 0.8rem;
-      box-shadow: 0 0 15px currentColor;
+      font-weight: 900;
+      font-size: 0.85rem;
       transform: scale(0);
       animation: pop-in 0.15s forwards ease-out;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 
+        inset -5px -5px 12px rgba(0, 0, 0, 0.6),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+        0 8px 15px rgba(0, 0, 0, 0.5);
+      transition: transform 0.05s ease;
+    }
+
+    .target:active {
+      transform: scale(0.9) !important;
     }
 
     @keyframes pop-in {
       to { transform: scale(1); }
     }
 
-    .target-normal { background: #00f2fe; color: #000; box-shadow: 0 0 15px #00f2fe; }
-    .target-gold   { background: #ffd700; color: #000; box-shadow: 0 0 20px #ffd700; border: 2px solid #fff; }
-    .target-bomb   { background: #ff0055; color: #fff; box-shadow: 0 0 20px #ff0055; }
+    .target-gold {
+      background: radial-gradient(circle at 35% 35%, #ffffff, #ffd700 60%, #b8860b 100%);
+      color: #3d2b00;
+      border-color: #fff;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+      box-shadow: 
+        inset -5px -5px 12px rgba(139, 69, 19, 0.6),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.9),
+        0 0 20px #ffd700,
+        0 8px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .target-bomb {
+      background: radial-gradient(circle at 35% 35%, #ff7799, #ff0055 60%, #880022 100%);
+      color: #fff;
+      border-color: #ff99bb;
+      box-shadow: 
+        inset -5px -5px 12px rgba(0, 0, 0, 0.8),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.7),
+        0 0 20px #ff0055,
+        0 8px 15px rgba(0, 0, 0, 0.5);
+    }
 
     .overlay {
       position: absolute;
@@ -209,7 +236,6 @@
 <div id="game-container">
   <header>
     <h1>⚡ DOPAMINE RUSH</h1>
-    <!-- 画面上部のハイスコア表示 -->
     <div class="hiscore-bar">👑 HIGH SCORE: <span id="top-hiscore">0</span></div>
     
     <div class="stats-bar">
@@ -272,6 +298,109 @@
   let timerId = null;
   let targetTimeoutId = null;
 
+  // --- Block Blast風Web Audio APIサウンドエンジン ---
+  let audioCtx = null;
+
+  // Block Blast風のペンタトニックスケール（ド・レ・ミ・ソ・ラ）周波数リスト
+  const scale = [
+    261.63, 293.66, 329.63, 392.00, 440.00, // Octave 4
+    523.25, 587.33, 659.25, 783.99, 880.00, // Octave 5
+    1046.50, 1174.66, 1318.51, 1567.98, 1760.00 // Octave 6
+  ];
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playSound(type) {
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'hit') {
+      // --- Block Blast風コンボ上昇ポコッ音 ---
+      const noteIndex = Math.min(combo, scale.length - 1);
+      const freq = scale[noteIndex];
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      // 高音から一瞬で目標音に急降下させることで「ポコッ」というブロック打球感を出す
+      osc.frequency.setValueAtTime(freq * 1.8, now);
+      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.03);
+
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.12);
+
+    } else if (type === 'gold') {
+      // --- ボーナスチャイム音（煌びやかな和音） ---
+      [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + idx * 0.04);
+
+        gain.gain.setValueAtTime(0.3, now + idx * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.2);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now + idx * 0.04);
+        osc.stop(now + idx * 0.04 + 0.2);
+      });
+
+    } else if (type === 'bomb') {
+      // --- 重低音ドカーン音（爆破） ---
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+
+      gain.gain.setValueAtTime(0.7, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+
+    } else if (type === 'finish') {
+      // --- タイムアップ・ファンファーレ ---
+      const notes = [440, 554.37, 659.25, 880];
+      notes.forEach((f, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now + i * 0.08);
+
+        gain.gain.setValueAtTime(0.4, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.3);
+      });
+    }
+  }
+
   const container = document.getElementById('game-container');
   const field = document.getElementById('play-field');
   const scoreDisplay = document.getElementById('score-display');
@@ -287,7 +416,6 @@
   const newRecordBadge = document.getElementById('new-record-badge');
   const historyList = document.getElementById('history-list');
 
-  // 初期ハイスコア読み込み
   updateHighScoreDisplay();
 
   function updateHighScoreDisplay() {
@@ -297,6 +425,8 @@
   }
 
   function startGame() {
+    initAudio();
+
     score = 0;
     combo = 0;
     timeLeft = GAME_TIME;
@@ -337,7 +467,7 @@
     field.innerHTML = '';
 
     const target = document.createElement('div');
-    const size = 60;
+    const size = 65;
     const maxX = field.clientWidth - size;
     const maxY = field.clientHeight - size;
 
@@ -355,8 +485,23 @@
     target.style.left = `${x}px`;
     target.style.top = `${y}px`;
 
-    if (type === 'gold') target.textContent = '+TIME';
-    if (type === 'bomb') target.textContent = '💣';
+    if (type === 'normal') {
+      const hue = Math.floor(Math.random() * 360);
+      target.style.background = `radial-gradient(circle at 35% 35%, hsl(${hue}, 100%, 80%), hsl(${hue}, 100%, 50%) 60%, hsl(${hue}, 100%, 30%) 100%)`;
+      target.style.boxShadow = `
+        inset -5px -5px 12px rgba(0, 0, 0, 0.6),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+        0 0 15px hsl(${hue}, 100%, 50%),
+        0 8px 15px rgba(0, 0, 0, 0.5)
+      `;
+      target.style.color = '#fff';
+      target.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
+      target.textContent = 'TAP';
+    } else if (type === 'gold') {
+      target.textContent = '+TIME';
+    } else if (type === 'bomb') {
+      target.textContent = '💣';
+    }
 
     target.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -381,6 +526,7 @@
     if (type === 'bomb') {
       combo = 0;
       timeLeft = Math.max(0, timeLeft - 2.0);
+      playSound('bomb');
       triggerVibrate([100, 50, 100]);
       triggerShake();
     } else {
@@ -390,8 +536,10 @@
 
       if (type === 'gold') {
         timeLeft = Math.min(GAME_TIME, timeLeft + 1.0);
+        playSound('gold');
         triggerVibrate(80);
       } else {
+        playSound('hit'); // Block Blast風コンボ音
         triggerVibrate(30);
       }
 
@@ -425,9 +573,9 @@
     clearTimeout(targetTimeoutId);
     field.innerHTML = '';
 
+    playSound('finish');
     triggerVibrate([150, 100, 150]);
 
-    // ハイスコア判定＆保存
     const isNewRecord = saveRecord(score);
     if (isNewRecord) {
       newRecordBadge.classList.remove('hidden');
