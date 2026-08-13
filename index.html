@@ -264,7 +264,7 @@
       🟡 金: ボーナス&タイム回復(+1秒)<br>
       💣 爆弾: コンボ消滅&タイム減算(-2秒)
     </p>
-    <button class="btn" onclick="startGame()">START</button>
+    <button class="btn" id="start-btn">START</button>
   </div>
 
   <!-- リザルト画面 -->
@@ -280,7 +280,7 @@
       BEST: <span id="result-hiscore">0</span>
     </div>
 
-    <button class="btn" onclick="startGame()">RETRY</button>
+    <button class="btn" id="retry-btn">RETRY</button>
     
     <div class="history-box">
       <div>直近の記録:</div>
@@ -298,17 +298,17 @@
   let timerId = null;
   let targetTimeoutId = null;
 
-  // --- Block Blast風Web Audio APIサウンドエンジン ---
+  // Web Audio Context
   let audioCtx = null;
 
-  // Block Blast風のペンタトニックスケール（ド・レ・ミ・ソ・ラ）周波数リスト
   const scale = [
-    261.63, 293.66, 329.63, 392.00, 440.00, // Octave 4
-    523.25, 587.33, 659.25, 783.99, 880.00, // Octave 5
-    1046.50, 1174.66, 1318.51, 1567.98, 1760.00 // Octave 6
+    261.63, 293.66, 329.63, 392.00, 440.00,
+    523.25, 587.33, 659.25, 783.99, 880.00,
+    1046.50, 1174.66, 1318.51, 1567.98, 1760.00
   ];
 
-  function initAudio() {
+  // タップ時に確実にAudioContextを活性化
+  function unlockAudio() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -319,11 +319,13 @@
 
   function playSound(type) {
     if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
 
     const now = audioCtx.currentTime;
 
     if (type === 'hit') {
-      // --- Block Blast風コンボ上昇ポコッ音 ---
       const noteIndex = Math.min(combo, scale.length - 1);
       const freq = scale[noteIndex];
 
@@ -331,7 +333,6 @@
       const gain = audioCtx.createGain();
 
       osc.type = 'sine';
-      // 高音から一瞬で目標音に急降下させることで「ポコッ」というブロック打球感を出す
       osc.frequency.setValueAtTime(freq * 1.8, now);
       osc.frequency.exponentialRampToValueAtTime(freq, now + 0.03);
 
@@ -345,7 +346,6 @@
       osc.stop(now + 0.12);
 
     } else if (type === 'gold') {
-      // --- ボーナスチャイム音（煌びやかな和音） ---
       [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -363,7 +363,6 @@
       });
 
     } else if (type === 'bomb') {
-      // --- 重低音ドカーン音（爆破） ---
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sawtooth';
@@ -381,7 +380,6 @@
       osc.stop(now + 0.3);
 
     } else if (type === 'finish') {
-      // --- タイムアップ・ファンファーレ ---
       const notes = [440, 554.37, 659.25, 880];
       notes.forEach((f, i) => {
         const osc = audioCtx.createOscillator();
@@ -416,6 +414,16 @@
   const newRecordBadge = document.getElementById('new-record-badge');
   const historyList = document.getElementById('history-list');
 
+  document.getElementById('start-btn').addEventListener('pointerdown', () => {
+    unlockAudio();
+    startGame();
+  });
+
+  document.getElementById('retry-btn').addEventListener('pointerdown', () => {
+    unlockAudio();
+    startGame();
+  });
+
   updateHighScoreDisplay();
 
   function updateHighScoreDisplay() {
@@ -425,8 +433,6 @@
   }
 
   function startGame() {
-    initAudio();
-
     score = 0;
     combo = 0;
     timeLeft = GAME_TIME;
@@ -505,6 +511,7 @@
 
     target.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
+      unlockAudio();
       handleHit(type);
     });
 
@@ -539,7 +546,7 @@
         playSound('gold');
         triggerVibrate(80);
       } else {
-        playSound('hit'); // Block Blast風コンボ音
+        playSound('hit');
         triggerVibrate(30);
       }
 
