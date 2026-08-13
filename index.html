@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>⚡ DOPAMINE RUSH</title>
+  
+  <title>DOPAMINE RUSH - 爽快サウンドの無料ブラウザパズルゲーム</title>
+  <meta name="description" content="爽快なブロック配置音とコンボ音を楽しめる無料ブラウザゲーム『DOPAMINE RUSH』。スマホやPCですぐに遊べるパズルゲーム！">
+  <meta property="og:title" content="DOPAMINE RUSH">
+  <meta property="og:description" content="爽快効果音のブラウザパズルゲーム">
+  <meta property="og:type" content="website">
+
   <style>
     * {
       box-sizing: border-box;
@@ -296,10 +302,8 @@
   let timerId = null;
   let targetTimeoutId = null;
 
-  // Web Audio Context
   let audioCtx = null;
 
-  // Block Blast風 マリンバ音階
   const blockBlastScale = [
     261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98
   ];
@@ -313,10 +317,8 @@
     }
   }
 
-  // ブロック配置時の「コトッ」「トッ」というアタック音を合成生成
   function playBlockTapSound(now) {
-    // 1. ノイズ成分（木製ブロックがぶつかる「コッ」という質感）
-    const bufferSize = audioCtx.sampleRate * 0.02; // 0.02秒の短いノイズ
+    const bufferSize = audioCtx.sampleRate * 0.02;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -328,7 +330,7 @@
 
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(800, now); // 木製打撃音の周波数帯
+    filter.frequency.setValueAtTime(800, now);
     filter.Q.setValueAtTime(3, now);
 
     const noiseGain = audioCtx.createGain();
@@ -341,7 +343,6 @@
 
     noise.start(now);
 
-    // 2. ピッチスイープ（「トッ」と低音に素早く落ちるアタック感）
     const popOsc = audioCtx.createOscillator();
     const popGain = audioCtx.createGain();
 
@@ -359,7 +360,6 @@
     popOsc.stop(now + 0.03);
   }
 
-  // 和音用マリンバ再生関数
   function playMarimbaNote(freq, time, volume = 0.25) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -377,7 +377,6 @@
     osc.stop(time + 0.3);
   }
 
-  // --- Block Blast完全再現サウンド処理 ---
   function playSound(type) {
     if (!audioCtx) return;
     if (audioCtx.state === 'suspended') {
@@ -387,16 +386,13 @@
     const now = audioCtx.currentTime;
 
     if (type === 'hit') {
-      // タップした瞬間のBlock Blast風アタック音（コトッ）
       playBlockTapSound(now);
 
-      // 続いて鳴るコンボのアルペジオ（マリンバ音）
       const baseIdx = Math.min(combo % (blockBlastScale.length - 2), blockBlastScale.length - 3);
       const noteCount = Math.min(3 + Math.floor(combo / 2), 5);
 
       for (let i = 0; i < noteCount; i++) {
         const freq = blockBlastScale[baseIdx + (i % 3)];
-        // アタック音の直後(0.02秒後)からアルペジオを開始
         playMarimbaNote(freq * (1 + Math.floor(i / 3) * 0.5), now + 0.02 + i * 0.04, 0.22);
       }
 
