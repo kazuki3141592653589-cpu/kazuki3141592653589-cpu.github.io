@@ -20,16 +20,16 @@
 
     body {
       margin: 0;
-      padding: 0;
+      padding: 10px;
       background-color: #0d0f12;
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
-      overflow: hidden;
+      overflow-y: auto;
     }
 
     #game-container {
@@ -44,6 +44,7 @@
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      flex-shrink: 0;
     }
 
     .shake {
@@ -205,7 +206,7 @@
       border-radius: 30px;
       cursor: pointer;
       box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-      margin-top: 15px;
+      margin-top: 10px;
     }
 
     .btn:active { transform: scale(0.95); }
@@ -227,13 +228,58 @@
     }
 
     .history-box {
-      margin-top: 15px;
+      margin-top: 10px;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px;
       width: 100%;
       font-size: 0.75rem;
       color: #8b949e;
+    }
+
+    .name-input {
+      background: #0d0f12;
+      border: 1px solid #30363d;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      text-align: center;
+      margin-bottom: 10px;
+      width: 80%;
+      max-width: 200px;
+    }
+
+    #online-ranking-panel {
+      width: 100%;
+      max-width: 420px;
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 16px;
+      padding: 12px 15px;
+      margin-top: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+
+    #online-ranking-panel h3 {
+      margin: 0 0 8px 0;
+      font-size: 0.9rem;
+      color: #ffd700;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .online-rank-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-bottom: 1px solid #21262d;
+      font-size: 0.8rem;
+      color: #c9d1d9;
+    }
+
+    .online-rank-row:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
@@ -264,7 +310,8 @@
 
   <div id="start-screen" class="overlay">
     <h2 style="color: #00f2fe; margin-bottom: 5px;">準備OK？</h2>
-    <p style="font-size: 0.85rem; color: #8b949e; text-align: center; line-height: 1.5;">
+    <input type="text" id="player-name" class="name-input" placeholder="プレイヤー名を入力" maxlength="10">
+    <p style="font-size: 0.8rem; color: #8b949e; text-align: center; line-height: 1.4; margin: 0 0 10px 0;">
       ターゲットを瞬時にタップ！<br>
       🟡 金: ボーナス&タイム回復(+1秒)<br>
       💣 爆弾: コンボ消滅&タイム減算(-2秒)
@@ -277,10 +324,10 @@
     <div id="new-record-badge" class="new-record hidden">🎉 NEW HIGH SCORE! 🎉</div>
     <div id="rank-display" class="rank-text">S</div>
     
-    <div style="font-size: 1.2rem; margin-bottom: 5px;">
+    <div style="font-size: 1.2rem; margin-bottom: 3px;">
       SCORE: <span id="final-score" style="color: #00f2fe; font-weight: bold;">0</span>
     </div>
-    <div style="font-size: 0.85rem; color: #ffd700; margin-bottom: 10px;">
+    <div style="font-size: 0.85rem; color: #ffd700; margin-bottom: 8px;">
       BEST: <span id="result-hiscore">0</span>
     </div>
 
@@ -288,12 +335,32 @@
     
     <div class="history-box">
       <div>直近の記録:</div>
-      <div id="history-list" style="margin-top: 5px; color: #c9d1d9;"></div>
+      <div id="history-list" style="margin-top: 3px; color: #c9d1d9;"></div>
     </div>
   </div>
 </div>
 
-<script>
+<div id="online-ranking-panel">
+  <h3>🏆 世界のオンラインランキング</h3>
+  <div id="online-ranking-list" style="color: #8b949e; text-align: center; font-size: 0.8rem;">読み込み中...</div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDN5Y2t4I18nJPN-xCULDMKwG...",
+    authDomain: "adpgjn.firebaseapp.com",
+    projectId: "adpgjn",
+    storageBucket: "adpgjn.firebasestorage.app",
+    messagingSenderId: "693644624750",
+    appId: "1:693644624750:web:71986adc378711e9f451f2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
   const GAME_TIME = 20.0;
   let score = 0;
   let combo = 0;
@@ -436,6 +503,8 @@
   const rankDisplay = document.getElementById('rank-display');
   const newRecordBadge = document.getElementById('new-record-badge');
   const historyList = document.getElementById('history-list');
+  const playerNameInput = document.getElementById('player-name');
+  const onlineRankingList = document.getElementById('online-ranking-list');
 
   document.getElementById('start-btn').addEventListener('pointerdown', () => {
     unlockAudio();
@@ -456,6 +525,9 @@
   }
 
   function startGame() {
+    const playerName = playerNameInput.value.trim() || '名無しさん';
+    localStorage.setItem('dr_player_name', playerName);
+
     score = 0;
     combo = 0;
     timeLeft = GAME_TIME;
@@ -478,7 +550,7 @@
 
       if (timeLeft <= 0) {
         timeLeft = 0;
-        endGame();
+        endGame(playerName);
       }
 
       if (timeLeft <= 5.0 && !timeDisplay.classList.contains('spurt')) {
@@ -597,7 +669,7 @@
     if ('vibrate' in navigator) navigator.vibrate(pattern);
   }
 
-  function endGame() {
+  async function endGame(playerName) {
     isPlaying = false;
     clearInterval(timerId);
     clearTimeout(targetTimeoutId);
@@ -619,6 +691,16 @@
     renderHistory();
 
     resultScreen.classList.remove('hidden');
+
+    try {
+      await addDoc(collection(db, "rankings"), {
+        name: playerName,
+        score: score,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error("スコア送信エラー: ", e);
+    }
   }
 
   function getRank(s) {
@@ -649,18 +731,27 @@
     const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
     historyList.innerHTML = history.map((sc, i) => `<div>#${i+1} : ${sc.toLocaleString()} pt</div>`).join('');
   }
-</script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4117819766618287"
-     crossorigin="anonymous"></script>
-<!-- ​dopamine-rush-footer -->
-<ins class="adsbygoogle"
-     style="display:block"
-     data-ad-client="ca-pub-4117819766618287"
-     data-ad-slot="5438727140"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
+
+  const savedName = localStorage.getItem('dr_player_name');
+  if (savedName) playerNameInput.value = savedName;
+
+  const q = query(collection(db, "rankings"), orderBy("score", "desc"), limit(5));
+  onSnapshot(q, (snapshot) => {
+    let html = "";
+    let rank = 1;
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      html += `<div class="online-rank-row"><span><b>#${rank}</b> ${escapeHtml(data.name)}</span><span><b>${data.score.toLocaleString()}</b> pt</span></div>`;
+      rank++;
+    });
+    onlineRankingList.innerHTML = html || "まだ記録はありません";
+  });
+
+  function escapeHtml(str) {
+    return str.replace(/[&'`<>"]/g, (match) => ({
+      '&': '&amp;', '\'': '&#x27;', '`': '&#x60;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+    }[match]));
+  }
 </script>
 </body>
-</html>
+  </html>
