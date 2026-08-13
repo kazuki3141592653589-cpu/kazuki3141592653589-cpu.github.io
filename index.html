@@ -1,267 +1,476 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ドーパミン・クリックゲーム</title>
-<style>
-*{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;font-family:system-ui,sans-serif;
-  background:radial-gradient(circle at 50% 35%,#26345c,#0b1020 65%);
-  color:white;display:flex;align-items:center;justify-content:center;overflow:hidden
-}
-#game{width:min(700px,94vw);text-align:center}
-h1{font-size:clamp(28px,7vw,52px);margin:0 0 8px}
-#sub{opacity:.75;margin-bottom:18px}
-.stats{display:flex;justify-content:space-around;gap:8px;margin:12px 0 18px}
-.card{background:#ffffff12;border:1px solid #ffffff22;border-radius:16px;padding:10px 18px;min-width:100px}
-.num{font-size:26px;font-weight:800}
-.label{font-size:12px;opacity:.7}
-#arena{
-  position:relative;height:min(58vh,430px);min-height:320px;
-  border-radius:28px;background:#ffffff0b;border:2px solid #ffffff1c;
-  overflow:hidden;box-shadow:0 20px 70px #0007
-}
-#target{
-  position:absolute;width:74px;height:74px;border:0;border-radius:50%;
-  cursor:pointer;display:none;color:white;font-size:24px;font-weight:900;
-  background:radial-gradient(circle at 35% 30%,#fff,#ffdc52 12%,#ff7a18 48%,#e52d66 80%);
-  box-shadow:0 0 20px #ffbd4a,0 0 55px #ff4f8b;
-  transform:translate(-50%,-50%);transition:transform .045s
-}
-#target:active{transform:translate(-50%,-50%) scale(.82)}
-#start{
-  margin-top:20px;border:0;border-radius:18px;padding:15px 28px;
-  font-size:18px;font-weight:800;cursor:pointer;background:#fff;color:#111
-}
-#msg{height:34px;font-size:20px;font-weight:800;margin-top:12px}
-.particle{position:absolute;pointer-events:none;font-weight:900;font-size:22px;animation:pop .65s ease-out forwards}
-@keyframes pop{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-110px) scale(1.25);opacity:0}}
-.flash{position:absolute;inset:0;pointer-events:none;background:white;opacity:0}
-@keyframes flash{0%{opacity:.3}100%{opacity:0}}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⚡ DOPAMINE RUSH</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
 
-.combo-hot{animation:comboPulse .18s ease-out}
-@keyframes comboPulse{0%{transform:scale(1.18)}100%{transform:scale(1)}}
-</style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0d0f12;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      width: 100%;
+      max-width: 420px;
+      height: 600px;
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+
+    .shake {
+      animation: shake-anim 0.2s ease-in-out;
+    }
+
+    @keyframes shake-anim {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-8px, 5px); }
+      50% { transform: translate(8px, -5px); }
+      75% { transform: translate(-5px, -5px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    header {
+      padding: 10px 15px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.4);
+      border-bottom: 1px solid #30363d;
+    }
+
+    h1 {
+      margin: 0 0 5px 0;
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+      color: #00f2fe;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+    }
+
+    /* ハイスコアバー（追加） */
+    .hiscore-bar {
+      font-size: 0.75rem;
+      color: #ffd700;
+      margin-bottom: 8px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .stats-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: bold;
+      font-family: monospace;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: #8b949e;
+    }
+
+    #time-display.spurt {
+      color: #ff0055;
+      animation: pulse 0.4s infinite alternate;
+      text-shadow: 0 0 12px #ff0055;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.25); }
+    }
+
+    #combo-display {
+      transition: transform 0.1s ease;
+    }
+
+    .combo-bump {
+      transform: scale(1.4);
+      color: #ff007f !important;
+      text-shadow: 0 0 15px #ff007f;
+    }
+
+    #play-field {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle, #1a2332 0%, #0d0f12 100%);
+    }
+
+    .target {
+      position: absolute;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.8rem;
+      box-shadow: 0 0 15px currentColor;
+      transform: scale(0);
+      animation: pop-in 0.15s forwards ease-out;
+    }
+
+    @keyframes pop-in {
+      to { transform: scale(1); }
+    }
+
+    .target-normal { background: #00f2fe; color: #000; box-shadow: 0 0 15px #00f2fe; }
+    .target-gold   { background: #ffd700; color: #000; box-shadow: 0 0 20px #ffd700; border: 2px solid #fff; }
+    .target-bomb   { background: #ff0055; color: #fff; box-shadow: 0 0 20px #ff0055; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 15, 18, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    .hidden { display: none !important; }
+
+    .btn {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      border: none;
+      color: #000;
+      padding: 12px 32px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+      margin-top: 15px;
+    }
+
+    .btn:active { transform: scale(0.95); }
+
+    .rank-text {
+      font-size: 3.5rem;
+      font-weight: 900;
+      margin: 5px 0;
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .new-record {
+      color: #ff007f;
+      font-weight: bold;
+      font-size: 0.9rem;
+      animation: pulse 0.5s infinite alternate;
+    }
+
+    .history-box {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      width: 100%;
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+  </style>
 </head>
 <body>
-<div id="game">
-  <h1>⚡ DOPAMINE RUSH</h1>
-  <div id="sub">光るターゲットをタップ！連続成功でコンボ！</div>
 
-  <div class="stats">
-    <div class="card"><div class="num" id="score">0</div><div class="label">SCORE</div></div>
-    <div class="card"><div class="num" id="combo">0</div><div class="label">COMBO</div></div>
-    <div class="card"><div class="num" id="time">20.0</div><div class="label">TIME</div></div>
+<div id="game-container">
+  <header>
+    <h1>⚡ DOPAMINE RUSH</h1>
+    <!-- 画面上部のハイスコア表示 -->
+    <div class="hiscore-bar">👑 HIGH SCORE: <span id="top-hiscore">0</span></div>
+    
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div id="score-display" class="stat-value" style="color: #00f2fe;">0</div>
+        <div class="stat-label">SCORE</div>
+      </div>
+      <div class="stat-box">
+        <div id="combo-display" class="stat-value" style="color: #ff9900;">0</div>
+        <div class="stat-label">COMBO</div>
+      </div>
+      <div class="stat-box">
+        <div id="time-display" class="stat-value" style="color: #ffd700;">20.0</div>
+        <div class="stat-label">TIME</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="play-field"></div>
+
+  <!-- スタート画面 -->
+  <div id="start-screen" class="overlay">
+    <h2 style="color: #00f2fe; margin-bottom: 5px;">準備OK？</h2>
+    <p style="font-size: 0.85rem; color: #8b949e; text-align: center; line-height: 1.5;">
+      ターゲットを瞬時にタップ！<br>
+      🟡 金: ボーナス&タイム回復(+1秒)<br>
+      💣 爆弾: コンボ消滅&タイム減算(-2秒)
+    </p>
+    <button class="btn" onclick="startGame()">START</button>
   </div>
 
-  <div id="arena">
-    <button id="target">+1</button>
-    <div class="flash" id="flash"></div>
+  <!-- リザルト画面 -->
+  <div id="result-screen" class="overlay hidden">
+    <h3 style="margin: 0; color: #8b949e;">RESULT</h3>
+    <div id="new-record-badge" class="new-record hidden">🎉 NEW HIGH SCORE! 🎉</div>
+    <div id="rank-display" class="rank-text">S</div>
+    
+    <div style="font-size: 1.2rem; margin-bottom: 5px;">
+      SCORE: <span id="final-score" style="color: #00f2fe; font-weight: bold;">0</span>
+    </div>
+    <div style="font-size: 0.85rem; color: #ffd700; margin-bottom: 10px;">
+      BEST: <span id="result-hiscore">0</span>
+    </div>
+
+    <button class="btn" onclick="startGame()">RETRY</button>
+    
+    <div class="history-box">
+      <div>直近の記録:</div>
+      <div id="history-list" style="margin-top: 5px; color: #c9d1d9;"></div>
+    </div>
   </div>
-  <div id="msg">準備OK？</div>
-  <button id="start">▶ スタート</button>
 </div>
 
 <script>
-const arena=document.getElementById("arena");
-const target=document.getElementById("target");
-const scoreEl=document.getElementById("score");
-const comboEl=document.getElementById("combo");
-const timeEl=document.getElementById("time");
-const msg=document.getElementById("msg");
-const start=document.getElementById("start");
-const flash=document.getElementById("flash");
+  const GAME_TIME = 20.0;
+  let score = 0;
+  let combo = 0;
+  let timeLeft = GAME_TIME;
+  let isPlaying = false;
+  let timerId = null;
+  let targetTimeoutId = null;
 
-let score=0,combo=0,time=20,playing=false,last=0;
-let multiplier=1, bonusUntil=0, audioCtx=null, comboSound=0;
+  const container = document.getElementById('game-container');
+  const field = document.getElementById('play-field');
+  const scoreDisplay = document.getElementById('score-display');
+  const comboDisplay = document.getElementById('combo-display');
+  const timeDisplay = document.getElementById('time-display');
+  const topHiscore = document.getElementById('top-hiscore');
+  
+  const startScreen = document.getElementById('start-screen');
+  const resultScreen = document.getElementById('result-screen');
+  const finalScoreDisplay = document.getElementById('final-score');
+  const resultHiscore = document.getElementById('result-hiscore');
+  const rankDisplay = document.getElementById('rank-display');
+  const newRecordBadge = document.getElementById('new-record-badge');
+  const historyList = document.getElementById('history-list');
 
-function audio(){
-  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==="suspended") audioCtx.resume();
-}
-function beep(freq,dur=.08,type="sine",vol=.05){
-  audio();
-  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-  o.type=type;o.frequency.value=freq;g.gain.value=Math.min(vol*2.2,.16);
-  o.connect(g);g.connect(audioCtx.destination);
-  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);
-  o.start();o.stop(audioCtx.currentTime+dur);
-}
-function soundHit(){
-  comboSound++;
-  const base=360+Math.min(comboSound,12)*35;
-  beep(base,.055,"sine",.045);
-  setTimeout(()=>beep(base*1.45,.07,"triangle",.045),35);
-}
-function soundCombo(n){
-  const notes=[392,494,587,659,784,988];
-  const count=Math.min(3+Math.floor(n/5),6);
-  for(let i=0;i<count;i++) setTimeout(()=>beep(notes[i],.11,"triangle",.05),i*65);
-}
-function soundClear(n){
-  const notes=[220,277,330,440,554,660,880];
-  const count=Math.min(3+n,7);
-  for(let i=0;i<count;i++) setTimeout(()=>beep(notes[i],.12,"square",.035),i*48);
-}
-function soundPerfect(){
-  [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,.14,"triangle",.05),i*55));
-}
-function soundBonus(){
-  [440,660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,.1,"square",.045),i*55));
-}
-function soundBig(){
-  [330,440,660,880,1320].forEach((f,i)=>setTimeout(()=>beep(f,.13,"sawtooth",.045),i*70));
-}
+  // 初期ハイスコア読み込み
+  updateHighScoreDisplay();
 
-const messages=["NICE!","GOOD!","AWESOME!","PERFECT!","🔥 COMBO!","気持ちいい！"];
-
-function moveTarget(){
-  targetColor(combo);
-  const r=arena.getBoundingClientRect();
-  const pad=44;
-  target.style.left=(pad+Math.random()*(r.width-pad*2))+"px";
-  target.style.top=(pad+Math.random()*(r.height-pad*2))+"px";
-  target.style.display="block";
-
-  // コンボが増えるほどターゲットの出現テンポを高速化
-  const speed = combo>=20 ? 35 : combo>=10 ? 55 : combo>=5 ? 80 : 115;
-  target.style.transition=`transform ${Math.max(0.025,speed/1800)}s`;
-  target.animate(
-    [{filter:"brightness(1.15)",transform:"translate(-50%,-50%) scale(.82)"},
-     {filter:"brightness(1.7)",transform:"translate(-50%,-50%) scale(1)"}],
-    {duration:speed,easing:"cubic-bezier(.2,.8,.2,1)"}
-  );
-}
-
-function particle(x,y,text){
-  const p=document.createElement("div");
-  p.className="particle";p.textContent=text;
-  p.style.left=x+"px";p.style.top=y+"px";
-  arena.appendChild(p);setTimeout(()=>p.remove(),650);
-}
-
-function targetColor(n){
-  const colors=[
-    ["#63b3ff","#246bff"], // 0
-    ["#65f6b5","#12b96b"], // 3
-    ["#ffe66b","#ffad24"], // 6
-    ["#ff9b62","#ff4d3d"], // 9
-    ["#ff6bd6","#b82dff"], // 12
-    ["#8b7cff","#4b35ff"], // 15
-  ];
-  const c=colors[Math.min(Math.floor(n/3),colors.length-1)];
-  target.style.background=`radial-gradient(circle at 35% 30%,#fff 0 10%,${c[0]} 22%,${c[1]} 72%,#111 100%)`;
-  target.style.boxShadow=`0 0 18px ${c[0]},0 0 50px ${c[1]}`;
-  if(n>=18){
-    const hue=(performance.now()/3)%360;
-    target.style.background=`radial-gradient(circle at 35% 30%,#fff 0 10%,hsl(${hue},100%,70%) 25%,hsl(${hue+70},100%,55%) 72%,#111 100%)`;
-    target.style.boxShadow=`0 0 20px hsl(${hue},100%,70%),0 0 55px hsl(${hue+70},100%,55%)`;
+  function updateHighScoreDisplay() {
+    const high = localStorage.getItem('dr_highscore') || '0';
+    topHiscore.textContent = parseInt(high, 10).toLocaleString();
+    resultHiscore.textContent = parseInt(high, 10).toLocaleString();
   }
-}
-function comboColor(n){
-  const colors=[
-    "#ffffff","#6cf6ff","#65a7ff","#9b7cff","#e66cff",
-    "#ff5edc","#ff5e7a","#ff9b3d","#ffe45c","#8cff66"
-  ];
-  const i=Math.min(Math.floor(n/2),colors.length-1);
-  comboEl.style.color=colors[i];
-  comboEl.classList.remove("combo-hot");
-  void comboEl.offsetWidth;
-  comboEl.classList.add("combo-hot");
-  if(n>=10){
-    comboEl.style.textShadow=`0 0 12px ${colors[i]},0 0 28px ${colors[i]}`;
-  }else comboEl.style.textShadow="";
-}
-function randomBonus(x,y){
-  const roll=Math.random();
-  if(roll>.20)return;
-  if(roll<.08){
-    multiplier=5;bonusUntil=performance.now()+4000;
-    msg.textContent="💎 超レア ×5！";
-    particle(x,y,"💎 ×5");
-    soundBig();
-  }else if(roll<.15){
-    time=Math.min(time+3,30);
-    msg.textContent="⏱️ TIME +3秒！";
-    particle(x,y,"+3秒");
-    soundBonus();
-  }else{
-    multiplier=2;bonusUntil=performance.now()+5000;
-    msg.textContent="⚡ ×2 BONUS！";
-    particle(x,y,"×2");
-    soundBonus();
-  }
-}
 
-target.addEventListener("pointerdown",e=>{
-  if(!playing)return;
-  const rect=arena.getBoundingClientRect();
-  const x=e.clientX-rect.left,y=e.clientY-rect.top;
-  combo++;
-  comboColor(combo);
-  if(performance.now()>bonusUntil)multiplier=1;
-  const points=Math.min(combo,10)*multiplier;
-  score+=points;
-  scoreEl.textContent=score;
-  comboEl.textContent=combo;
-  timeEl.textContent=Math.max(0,time).toFixed(1);
-  if(multiplier===1) msg.textContent=combo>=5?messages[4]+" x"+Math.min(combo,10):messages[Math.min(combo-1,5)];
-  particle(x,y,"+"+points);
-  soundHit();
-  if(combo>=5){
-    msg.textContent = combo>=20 ? "🔥🔥 ULTRA SPEED!" : combo>=10 ? "⚡ SPEED UP!" : "🏃 SPEED UP!";
-  }
-  if(combo%5===0){
-    soundCombo(combo);
-    msg.textContent="🔥 COMBO x"+combo;
-    particle(x,y,"COMBO!");
-  }
-  if(combo%10===0){
-    soundClear(Math.floor(combo/10));
-    score+=50;
-    scoreEl.textContent=score;
-    msg.textContent="💥 CLEAR BONUS +50!";
-    particle(x,y,"+50");
-  }
-  if(Math.random()<0.035){
-    soundPerfect();
-    score+=100;
-    scoreEl.textContent=score;
-    msg.textContent="✨ PERFECT +100!";
-    particle(x,y,"+100");
-  }
-  randomBonus(x,y);
-  flash.style.animation="none";void flash.offsetWidth;flash.style.animation="flash .18s ease-out";
-  moveTarget();
-});
+  function startGame() {
+    score = 0;
+    combo = 0;
+    timeLeft = GAME_TIME;
+    isPlaying = true;
 
-function end(){
-  playing=false;target.style.display="none";
-  msg.textContent=`終了！ ${score}ポイント 🎉`;
-  start.textContent="↻ もう一回";
-  beep(330,.12);setTimeout(()=>beep(220,.2),120);
-}
+    scoreDisplay.textContent = '0';
+    comboDisplay.textContent = '0';
+    timeDisplay.textContent = GAME_TIME.toFixed(1);
+    timeDisplay.classList.remove('spurt');
+    newRecordBadge.classList.add('hidden');
 
-function tick(now){
-  if(!playing)return;
-  if(!last)last=now;
-  time-=(now-last)/1000;last=now;
-  if(performance.now()>bonusUntil)multiplier=1;
-  timeEl.textContent=Math.max(0,time).toFixed(1);
-  if(time<=0){end();return}
-  requestAnimationFrame(tick);
-}
+    startScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
 
-start.onclick=()=>{
-  audio();score=0;combo=0;time=20;last=0;multiplier=1;bonusUntil=0;comboSound=0;playing=true;
-  scoreEl.textContent=0;comboEl.textContent=0;comboEl.style.color="#ffffff";targetColor(0);comboEl.style.textShadow="";timeEl.textContent="20.0";
-  msg.textContent="GO! ⚡";start.textContent="プレイ中…";
-  beep(660,.1);setTimeout(()=>beep(990,.12),90);
-  moveTarget();requestAnimationFrame(tick);
-};
-document.addEventListener("keydown",e=>{if(e.code==="Space"&&!playing)start.click()});
+    let lastTime = performance.now();
+    timerId = setInterval(() => {
+      const now = performance.now();
+      timeLeft -= (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        endGame();
+      }
+
+      if (timeLeft <= 5.0 && !timeDisplay.classList.contains('spurt')) {
+        timeDisplay.classList.add('spurt');
+      }
+
+      timeDisplay.textContent = Math.max(0, timeLeft).toFixed(1);
+    }, 50);
+
+    spawnTarget();
+  }
+
+  function spawnTarget() {
+    if (!isPlaying) return;
+    field.innerHTML = '';
+
+    const target = document.createElement('div');
+    const size = 60;
+    const maxX = field.clientWidth - size;
+    const maxY = field.clientHeight - size;
+
+    const x = Math.floor(Math.random() * maxX);
+    const y = Math.floor(Math.random() * maxY);
+
+    const rand = Math.random();
+    let type = 'normal';
+    if (rand < 0.15) type = 'gold';
+    else if (rand < 0.30) type = 'bomb';
+
+    target.className = `target target-${type}`;
+    target.style.width = `${size}px`;
+    target.style.height = `${size}px`;
+    target.style.left = `${x}px`;
+    target.style.top = `${y}px`;
+
+    if (type === 'gold') target.textContent = '+TIME';
+    if (type === 'bomb') target.textContent = '💣';
+
+    target.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      handleHit(type);
+    });
+
+    field.appendChild(target);
+
+    const speed = Math.max(400, 900 - combo * 15);
+    targetTimeoutId = setTimeout(() => {
+      if (isPlaying) {
+        if (type !== 'bomb') combo = 0;
+        updateUI();
+        spawnTarget();
+      }
+    }, speed);
+  }
+
+  function handleHit(type) {
+    clearTimeout(targetTimeoutId);
+
+    if (type === 'bomb') {
+      combo = 0;
+      timeLeft = Math.max(0, timeLeft - 2.0);
+      triggerVibrate([100, 50, 100]);
+      triggerShake();
+    } else {
+      combo++;
+      let gained = (type === 'gold') ? 500 : 100;
+      score += gained + combo * 20;
+
+      if (type === 'gold') {
+        timeLeft = Math.min(GAME_TIME, timeLeft + 1.0);
+        triggerVibrate(80);
+      } else {
+        triggerVibrate(30);
+      }
+
+      comboDisplay.classList.remove('combo-bump');
+      void comboDisplay.offsetWidth;
+      comboDisplay.classList.add('combo-bump');
+    }
+
+    updateUI();
+    spawnTarget();
+  }
+
+  function updateUI() {
+    scoreDisplay.textContent = score.toLocaleString();
+    comboDisplay.textContent = combo;
+  }
+
+  function triggerShake() {
+    container.classList.remove('shake');
+    void container.offsetWidth;
+    container.classList.add('shake');
+  }
+
+  function triggerVibrate(pattern) {
+    if ('vibrate' in navigator) navigator.vibrate(pattern);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerId);
+    clearTimeout(targetTimeoutId);
+    field.innerHTML = '';
+
+    triggerVibrate([150, 100, 150]);
+
+    // ハイスコア判定＆保存
+    const isNewRecord = saveRecord(score);
+    if (isNewRecord) {
+      newRecordBadge.classList.remove('hidden');
+    }
+
+    const rank = getRank(score);
+    finalScoreDisplay.textContent = score.toLocaleString();
+    rankDisplay.textContent = rank;
+    
+    updateHighScoreDisplay();
+    renderHistory();
+
+    resultScreen.classList.remove('hidden');
+  }
+
+  function getRank(s) {
+    if (s >= 12000) return 'SSS';
+    if (s >= 8000)  return 'S';
+    if (s >= 5000)  return 'A';
+    if (s >= 3000)  return 'B';
+    return 'C';
+  }
+
+  function saveRecord(s) {
+    const high = parseInt(localStorage.getItem('dr_highscore') || '0', 10);
+    let isNew = false;
+    if (s > high) {
+      localStorage.setItem('dr_highscore', s.toString());
+      isNew = true;
+    }
+
+    const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
+    history.unshift(s);
+    if (history.length > 3) history.pop();
+    localStorage.setItem('dr_history', JSON.stringify(history));
+
+    return isNew;
+  }
+
+  function renderHistory() {
+    const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
+    historyList.innerHTML = history.map((sc, i) => `<div>#${i+1} : ${sc.toLocaleString()} pt</div>`).join('');
+  }
 </script>
 </body>
 </html>
