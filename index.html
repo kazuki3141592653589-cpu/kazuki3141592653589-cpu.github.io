@@ -199,4 +199,460 @@
       border-radius: 30px;
       cursor: pointer;
       box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-      margin-top: 15
+      margin-top: 15px;
+    }
+
+    .btn:active { transform: scale(0.95); }
+
+    .rank-text {
+      font-size: 3.5rem;
+      font-weight: 900;
+      margin: 5px 0;
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .new-record {
+      color: #ff007f;
+      font-weight: bold;
+      font-size: 0.9rem;
+      animation: pulse 0.5s infinite alternate;
+    }
+
+    .history-box {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      width: 100%;
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <header>
+    <h1>⚡ DOPAMINE RUSH</h1>
+    <div class="hiscore-bar">👑 HIGH SCORE: <span id="top-hiscore">0</span></div>
+    
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div id="score-display" class="stat-value" style="color: #00f2fe;">0</div>
+        <div class="stat-label">SCORE</div>
+      </div>
+      <div class="stat-box">
+        <div id="combo-display" class="stat-value" style="color: #ff9900;">0</div>
+        <div class="stat-label">COMBO</div>
+      </div>
+      <div class="stat-box">
+        <div id="time-display" class="stat-value" style="color: #ffd700;">20.0</div>
+        <div class="stat-label">TIME</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="play-field"></div>
+
+  <div id="start-screen" class="overlay">
+    <h2 style="color: #00f2fe; margin-bottom: 5px;">準備OK？</h2>
+    <p style="font-size: 0.85rem; color: #8b949e; text-align: center; line-height: 1.5;">
+      ターゲットを瞬時にタップ！<br>
+      🟡 金: ボーナス&タイム回復(+1秒)<br>
+      💣 爆弾: コンボ消滅&タイム減算(-2秒)
+    </p>
+    <button class="btn" id="start-btn">START</button>
+  </div>
+
+  <div id="result-screen" class="overlay hidden">
+    <h3 style="margin: 0; color: #8b949e;">RESULT</h3>
+    <div id="new-record-badge" class="new-record hidden">🎉 NEW HIGH SCORE! 🎉</div>
+    <div id="rank-display" class="rank-text">S</div>
+    
+    <div style="font-size: 1.2rem; margin-bottom: 5px;">
+      SCORE: <span id="final-score" style="color: #00f2fe; font-weight: bold;">0</span>
+    </div>
+    <div style="font-size: 0.85rem; color: #ffd700; margin-bottom: 10px;">
+      BEST: <span id="result-hiscore">0</span>
+    </div>
+
+    <button class="btn" id="retry-btn">RETRY</button>
+    
+    <div class="history-box">
+      <div>直近の記録:</div>
+      <div id="history-list" style="margin-top: 5px; color: #c9d1d9;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAME_TIME = 20.0;
+  let score = 0;
+  let combo = 0;
+  let timeLeft = GAME_TIME;
+  let isPlaying = false;
+  let timerId = null;
+  let targetTimeoutId = null;
+
+  // Web Audio Context
+  let audioCtx = null;
+
+  // Block Blast風 マリンバ音階
+  const blockBlastScale = [
+    261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98
+  ];
+
+  function unlockAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  // ブロック配置時の「コトッ」「トッ」というアタック音を合成生成
+  function playBlockTapSound(now) {
+    // 1. ノイズ成分（木製ブロックがぶつかる「コッ」という質感）
+    const bufferSize = audioCtx.sampleRate * 0.02; // 0.02秒の短いノイズ
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, now); // 木製打撃音の周波数帯
+    filter.Q.setValueAtTime(3, now);
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.35, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+
+    noise.start(now);
+
+    // 2. ピッチスイープ（「トッ」と低音に素早く落ちるアタック感）
+    const popOsc = audioCtx.createOscillator();
+    const popGain = audioCtx.createGain();
+
+    popOsc.type = 'sine';
+    popOsc.frequency.setValueAtTime(320, now);
+    popOsc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
+
+    popGain.gain.setValueAtTime(0.4, now);
+    popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+    popOsc.connect(popGain);
+    popGain.connect(audioCtx.destination);
+
+    popOsc.start(now);
+    popOsc.stop(now + 0.03);
+  }
+
+  // 和音用マリンバ再生関数
+  function playMarimbaNote(freq, time, volume = 0.25) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, time);
+
+    gain.gain.setValueAtTime(volume, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(time);
+    osc.stop(time + 0.3);
+  }
+
+  // --- Block Blast完全再現サウンド処理 ---
+  function playSound(type) {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'hit') {
+      // タップした瞬間のBlock Blast風アタック音（コトッ）
+      playBlockTapSound(now);
+
+      // 続いて鳴るコンボのアルペジオ（マリンバ音）
+      const baseIdx = Math.min(combo % (blockBlastScale.length - 2), blockBlastScale.length - 3);
+      const noteCount = Math.min(3 + Math.floor(combo / 2), 5);
+
+      for (let i = 0; i < noteCount; i++) {
+        const freq = blockBlastScale[baseIdx + (i % 3)];
+        // アタック音の直後(0.02秒後)からアルペジオを開始
+        playMarimbaNote(freq * (1 + Math.floor(i / 3) * 0.5), now + 0.02 + i * 0.04, 0.22);
+      }
+
+    } else if (type === 'gold') {
+      playBlockTapSound(now);
+      [1046.50, 1318.51, 1567.98, 2093.00].forEach((freq, i) => {
+        playMarimbaNote(freq, now + 0.02 + i * 0.05, 0.3);
+      });
+
+    } else if (type === 'bomb') {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.18);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
+
+    } else if (type === 'finish') {
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+        playMarimbaNote(freq, now + i * 0.08, 0.3);
+      });
+    }
+  }
+
+  const container = document.getElementById('game-container');
+  const field = document.getElementById('play-field');
+  const scoreDisplay = document.getElementById('score-display');
+  const comboDisplay = document.getElementById('combo-display');
+  const timeDisplay = document.getElementById('time-display');
+  const topHiscore = document.getElementById('top-hiscore');
+  
+  const startScreen = document.getElementById('start-screen');
+  const resultScreen = document.getElementById('result-screen');
+  const finalScoreDisplay = document.getElementById('final-score');
+  const resultHiscore = document.getElementById('result-hiscore');
+  const rankDisplay = document.getElementById('rank-display');
+  const newRecordBadge = document.getElementById('new-record-badge');
+  const historyList = document.getElementById('history-list');
+
+  document.getElementById('start-btn').addEventListener('pointerdown', () => {
+    unlockAudio();
+    startGame();
+  });
+
+  document.getElementById('retry-btn').addEventListener('pointerdown', () => {
+    unlockAudio();
+    startGame();
+  });
+
+  updateHighScoreDisplay();
+
+  function updateHighScoreDisplay() {
+    const high = localStorage.getItem('dr_highscore') || '0';
+    topHiscore.textContent = parseInt(high, 10).toLocaleString();
+    resultHiscore.textContent = parseInt(high, 10).toLocaleString();
+  }
+
+  function startGame() {
+    score = 0;
+    combo = 0;
+    timeLeft = GAME_TIME;
+    isPlaying = true;
+
+    scoreDisplay.textContent = '0';
+    comboDisplay.textContent = '0';
+    timeDisplay.textContent = GAME_TIME.toFixed(1);
+    timeDisplay.classList.remove('spurt');
+    newRecordBadge.classList.add('hidden');
+
+    startScreen.classList.add('hidden');
+    resultScreen.classList.add('hidden');
+
+    let lastTime = performance.now();
+    timerId = setInterval(() => {
+      const now = performance.now();
+      timeLeft -= (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        endGame();
+      }
+
+      if (timeLeft <= 5.0 && !timeDisplay.classList.contains('spurt')) {
+        timeDisplay.classList.add('spurt');
+      }
+
+      timeDisplay.textContent = Math.max(0, timeLeft).toFixed(1);
+    }, 50);
+
+    spawnTarget();
+  }
+
+  function spawnTarget() {
+    if (!isPlaying) return;
+    field.innerHTML = '';
+
+    const target = document.createElement('div');
+    const size = 65;
+    const maxX = field.clientWidth - size;
+    const maxY = field.clientHeight - size;
+
+    const x = Math.floor(Math.random() * maxX);
+    const y = Math.floor(Math.random() * maxY);
+
+    const rand = Math.random();
+    let type = 'normal';
+    if (rand < 0.15) type = 'gold';
+    else if (rand < 0.30) type = 'bomb';
+
+    target.className = `target target-${type}`;
+    target.style.width = `${size}px`;
+    target.style.height = `${size}px`;
+    target.style.left = `${x}px`;
+    target.style.top = `${y}px`;
+
+    if (type === 'normal') {
+      const hue = Math.floor(Math.random() * 360);
+      target.style.background = `radial-gradient(circle at 35% 35%, hsl(${hue}, 100%, 80%), hsl(${hue}, 100%, 50%) 60%, hsl(${hue}, 100%, 30%) 100%)`;
+      target.style.boxShadow = `
+        inset -5px -5px 12px rgba(0, 0, 0, 0.6),
+        inset 5px 5px 10px rgba(255, 255, 255, 0.8),
+        0 0 15px hsl(${hue}, 100%, 50%),
+        0 8px 15px rgba(0, 0, 0, 0.5)
+      `;
+      target.style.color = '#fff';
+      target.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)';
+      target.textContent = 'TAP';
+    } else if (type === 'gold') {
+      target.textContent = '+TIME';
+    } else if (type === 'bomb') {
+      target.textContent = '💣';
+    }
+
+    target.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      unlockAudio();
+      handleHit(type);
+    });
+
+    field.appendChild(target);
+
+    const speed = Math.max(400, 900 - combo * 15);
+    targetTimeoutId = setTimeout(() => {
+      if (isPlaying) {
+        if (type !== 'bomb') combo = 0;
+        updateUI();
+        spawnTarget();
+      }
+    }, speed);
+  }
+
+  function handleHit(type) {
+    clearTimeout(targetTimeoutId);
+
+    if (type === 'bomb') {
+      combo = 0;
+      timeLeft = Math.max(0, timeLeft - 2.0);
+      playSound('bomb');
+      triggerVibrate([100, 50, 100]);
+      triggerShake();
+    } else {
+      combo++;
+      let gained = (type === 'gold') ? 500 : 100;
+      score += gained + combo * 20;
+
+      if (type === 'gold') {
+        timeLeft = Math.min(GAME_TIME, timeLeft + 1.0);
+        playSound('gold');
+        triggerVibrate(80);
+      } else {
+        playSound('hit');
+        triggerVibrate(30);
+      }
+
+      comboDisplay.classList.remove('combo-bump');
+      void comboDisplay.offsetWidth;
+      comboDisplay.classList.add('combo-bump');
+    }
+
+    updateUI();
+    spawnTarget();
+  }
+
+  function updateUI() {
+    scoreDisplay.textContent = score.toLocaleString();
+    comboDisplay.textContent = combo;
+  }
+
+  function triggerShake() {
+    container.classList.remove('shake');
+    void container.offsetWidth;
+    container.classList.add('shake');
+  }
+
+  function triggerVibrate(pattern) {
+    if ('vibrate' in navigator) navigator.vibrate(pattern);
+  }
+
+  function endGame() {
+    isPlaying = false;
+    clearInterval(timerId);
+    clearTimeout(targetTimeoutId);
+    field.innerHTML = '';
+
+    playSound('finish');
+    triggerVibrate([150, 100, 150]);
+
+    const isNewRecord = saveRecord(score);
+    if (isNewRecord) {
+      newRecordBadge.classList.remove('hidden');
+    }
+
+    const rank = getRank(score);
+    finalScoreDisplay.textContent = score.toLocaleString();
+    rankDisplay.textContent = rank;
+    
+    updateHighScoreDisplay();
+    renderHistory();
+
+    resultScreen.classList.remove('hidden');
+  }
+
+  function getRank(s) {
+    if (s >= 12000) return 'SSS';
+    if (s >= 8000)  return 'S';
+    if (s >= 5000)  return 'A';
+    if (s >= 3000)  return 'B';
+    return 'C';
+  }
+
+  function saveRecord(s) {
+    const high = parseInt(localStorage.getItem('dr_highscore') || '0', 10);
+    let isNew = false;
+    if (s > high) {
+      localStorage.setItem('dr_highscore', s.toString());
+      isNew = true;
+    }
+
+    const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
+    history.unshift(s);
+    if (history.length > 3) history.pop();
+    localStorage.setItem('dr_history', JSON.stringify(history));
+
+    return isNew;
+  }
+
+  function renderHistory() {
+    const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
+    historyList.innerHTML = history.map((sc, i) => `<div>#${i+1} : ${sc.toLocaleString()} pt</div>`).join('');
+  }
+</script>
+</body>
+</html>
