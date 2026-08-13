@@ -735,7 +735,7 @@
   const savedName = localStorage.getItem('dr_player_name');
   if (savedName) playerNameInput.value = savedName;
 
-  const q = query(collection(db, "rankings"), orderBy("score", "desc"), limit(5));
+  const q = query(collection(db, "rankings"), orderBy("score", "desc"), limit(50));
   onSnapshot(q, (snapshot) => {
     let html = "";
     let rank = 1;
