@@ -323,6 +323,13 @@
       border-bottom: 1px solid #30363d;
       padding-bottom: 6px;
     }
+    
+    .game-article h3 {
+      font-size: 0.9rem;
+      color: #ffd700;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -351,7 +358,7 @@
 
   <div id="play-field"></div>
 
-  <!-- スタート画面（ゲーム開始前でもここから攻略ページに行けます） -->
+  <!-- スタート画面 -->
   <div id="start-screen" class="overlay">
     <h2 style="color: #00f2fe; margin-bottom: 5px;">準備OK？</h2>
     <input type="text" id="player-name" class="name-input" placeholder="プレイヤー名を入力" maxlength="10">
@@ -362,13 +369,13 @@
     </p>
     <button class="btn" id="start-btn">START</button>
     
-    <!-- スタート画面内のクイックリンク -->
     <div style="margin-top: 15px; font-size: 0.8rem; display: flex; gap: 15px;">
       <a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">📖 攻略ガイドを見る</a>
       <a href="privacy.html" style="color: #8b949e; text-decoration: underline;">プライバシーポリシー</a>
     </div>
   </div>
 
+  <!-- リトライ画面 -->
   <div id="result-screen" class="overlay hidden">
     <h3 style="margin: 0; color: #8b949e;">RESULT</h3>
     <div id="new-record-badge" class="new-record hidden">🎉 NEW HIGH SCORE! 🎉</div>
@@ -383,6 +390,10 @@
 
     <button class="btn" id="retry-btn">RETRY</button>
     
+    <div style="margin-top: 12px; font-size: 0.85rem;">
+      <a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">📖 攻略のコツを確認する</a>
+    </div>
+
     <div class="history-box">
       <div>直近の記録:</div>
       <div id="history-list" style="margin-top: 3px; color: #c9d1d9;"></div>
@@ -395,10 +406,22 @@
   <div id="online-ranking-list" style="color: #8b949e; text-align: center; font-size: 0.8rem;">読み込み中...</div>
 </div>
 
+<!-- ボリュームを持たせた解説記事セクション -->
 <div class="game-article">
   <h2>DOPAMINE RUSH（ドーパミンラッシュ）とは？</h2>
-  <p>『DOPAMINE RUSH』は、制限時間内に画面に出現するターゲットを次々とタップして高得点を目指す、爽快感抜群の無料ブラウザパズルゲームです。</p>
-  <p>さらに詳しい<a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">ハイスコア攻略法やテクニックはこちら</a>をご覧ください。</p>
+  <p>『DOPAMINE RUSH』は、画面上に次々と出現するターゲットを制限時間内にどれだけ正確に、そして速くタップできるかを競う<strong>反射神経・集中力特化型のブラウザゲーム</strong>です。</p>
+  
+  <h3>ゲームの遊び方と特徴</h3>
+  <p>シンプルでありながら、タップした瞬間のサウンド演出やコンボの高揚感にこだわった爽快感が最大の特徴です。連続してターゲットを捉えることでスコアが加速していきます。</p>
+  <ul>
+    <li><strong>基本ルール:</strong> 制限時間内にターゲットをタップしてスコアを稼ぎます。</li>
+    <li><strong>コンボシステム:</strong> 途切らせずに繋ぐことでスコア倍率がアップします。</li>
+    <li><strong>特殊ターゲット:</strong> タイムを回復できる「金色」や、減点・コンボ消滅となる「爆弾（💣）」が登場する戦略性の高い仕様です。</li>
+  </ul>
+
+  <h3>ハイスコアを出すためのヒント</h3>
+  <p>SSSランクを目指すには、ただやみくもに連打するのではなく、画面全体を広く見渡す視野と、爆弾を瞬時に見極める判断力が重要になります。</p>
+  <p>さらに詳しいテクニックや高得点を取るためのコツは、専用の<a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">攻略ガイドページ</a>で詳しく解説しています。</p>
 </div>
 
 <div style="font-size: 11px; color: #777; text-align: center; margin: 15px 0; line-height: 1.4;">
@@ -774,7 +797,6 @@
       html += `<div class="online-rank-row"><span><b>#${rank}</b> ${escapeHtml(data.name)}</span><span><b>${data.score.toLocaleString()}</b> pt</span></div>`;
       rank++;
     });
-    onlineRankingList.html = html || "まだ記録はありません";
     onlineRankingList.innerHTML = html || "まだ記録はありません";
   });
 
