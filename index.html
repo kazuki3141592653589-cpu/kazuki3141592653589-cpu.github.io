@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="google-site-verification" content="UABA0hyUZsT881HyI7wKmlKBNLNexFkkQrrTSzmxyDM">
-  <title>ドーパミンラッシュ (Dopamine Rush) - 爽快サウンドの無料ブラウザパズルゲーム</title>
+  <title>ドーパミンラッシュ (Dopamine Rush) - 無料ブラウザパズルゲーム</title>
   <meta name="description" content="爽快なブロック配置音とコンボ音を楽しめる無料ブラウザゲーム『DOPAMINE RUSH』。スマホやPCですぐに遊べるパズルゲーム！">
   <meta property="og:title" content="DOPAMINE RUSH">
   <meta property="og:description" content="爽快効果音のブラウザパズルゲーム">
@@ -66,6 +66,7 @@
       text-align: center;
       background: rgba(0, 0, 0, 0.4);
       border-bottom: 1px solid #30363d;
+      position: relative;
     }
 
     h1 {
@@ -74,6 +75,24 @@
       letter-spacing: 2px;
       color: #00f2fe;
       text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+    }
+
+    /* 右上の攻略ボタン */
+    .strategy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: rgba(0, 242, 254, 0.1);
+      border: 1px solid #00f2fe;
+      color: #00f2fe;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .strategy-btn:hover {
+      background: rgba(0, 242, 254, 0.25);
     }
 
     .hiscore-bar {
@@ -284,7 +303,6 @@
       border-bottom: none;
     }
 
-    /* AdSense審査対策用テキストコンテンツエリアのデザイン */
     .game-article {
       width: 100%;
       max-width: 420px;
@@ -312,21 +330,13 @@
       color: #ffd700;
       margin: 15px 0 5px 0;
     }
-
-    .game-article ul {
-      margin: 0;
-      padding-left: 20px;
-    }
-
-    .game-article li {
-      margin-bottom: 5px;
-    }
   </style>
 </head>
 <body>
 
 <div id="game-container">
   <header>
+    <a href="strategy.html" class="strategy-btn">📖 攻略</a>
     <h1>⚡ DOPAMINE RUSH</h1>
     <div class="hiscore-bar">👑 HIGH SCORE: <span id="top-hiscore">0</span></div>
     
@@ -385,23 +395,19 @@
   <div id="online-ranking-list" style="color: #8b949e; text-align: center; font-size: 0.8rem;">読み込み中...</div>
 </div>
 
-<!-- Google AdSense 審査対策用テキスト解説セクション -->
 <div class="game-article">
   <h2>DOPAMINE RUSH（ドーパミンラッシュ）とは？</h2>
-  <p>『DOPAMINE RUSH』は、制限時間内に画面に出現するターゲットを次々とタップして高得点を目指す、爽快感抜群の無料ブラウザパズルゲームです。スマホやPCのブラウザからインストール不要ですぐにプレイできます。</p>
-  
-  <h3>ゲームのルールと遊び方</h3>
-  <ul>
-    <li><strong>制限時間とスコア:</strong> 制限時間は20秒間です。素早くターゲットをタップし続けることでコンボがつながり、獲得スコアがアップします。</li>
-    <li><strong>ゴールドターゲット（🟡）:</strong> タップすると高得点に加え、制限時間が1秒回復します。ピンチのときの立て直しに重要です。</li>
-    <li><strong>爆弾ターゲット（💣）:</strong> 間違えてタップするとコンボがリセットされ、制限時間が2秒減ってしまいます。慎重かつスピーディーな判断が求められます。</li>
-    <li><strong>オンラインランキング:</strong> 自分の記録をプレイヤー名と一緒に登録し、世界中のライバルたちとハイスコアを競い合うことができます。</li>
-  </ul>
+  <p>『DOPAMINE RUSH』は、制限時間内に画面に出現するターゲットを次々とタップして高得点を目指す、爽快感抜群の無料ブラウザパズルゲームです。</p>
+  <p>さらに詳しい<a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">ハイスコア攻略法やテクニックはこちら</a>をご覧ください。</p>
 </div>
 
 <div style="font-size: 11px; color: #777; text-align: center; margin: 15px 0; line-height: 1.4;">
     <p>当サイトでは、Cookieを使用しています。</p>
-    <p><a href="privacy.html" style="color: #00f2fe; text-decoration: underline;">プライバシーポリシー</a> ｜ <a href="contact.html" style="color: #00f2fe; text-decoration: underline;">お問い合わせ</a></p>
+    <p>
+      <a href="strategy.html" style="color: #00f2fe; text-decoration: underline;">攻略法</a> ｜ 
+      <a href="privacy.html" style="color: #00f2fe; text-decoration: underline;">プライバシーポリシー</a> ｜ 
+      <a href="contact.html" style="color: #00f2fe; text-decoration: underline;">お問い合わせ</a>
+    </p>
 </div>
 
 <script type="module">
@@ -429,10 +435,7 @@
   let targetTimeoutId = null;
 
   let audioCtx = null;
-
-  const blockBlastScale = [
-    261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98
-  ];
+  const blockBlastScale = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
 
   function unlockAudio() {
     if (!audioCtx) {
@@ -447,13 +450,10 @@
     const bufferSize = audioCtx.sampleRate * 0.02;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
+    for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
 
     const noise = audioCtx.createBufferSource();
     noise.buffer = buffer;
-
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.setValueAtTime(800, now);
@@ -466,22 +466,17 @@
     noise.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(audioCtx.destination);
-
     noise.start(now);
 
     const popOsc = audioCtx.createOscillator();
     const popGain = audioCtx.createGain();
-
     popOsc.type = 'sine';
     popOsc.frequency.setValueAtTime(320, now);
     popOsc.frequency.exponentialRampToValueAtTime(80, now + 0.03);
-
     popGain.gain.setValueAtTime(0.4, now);
     popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
     popOsc.connect(popGain);
     popGain.connect(audioCtx.destination);
-
     popOsc.start(now);
     popOsc.stop(now + 0.03);
   }
@@ -489,45 +484,34 @@
   function playMarimbaNote(freq, time, volume = 0.25) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, time);
-
     gain.gain.setValueAtTime(volume, time);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
-
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-
     osc.start(time);
     osc.stop(time + 0.3);
   }
 
   function playSound(type) {
     if (!audioCtx) return;
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     const now = audioCtx.currentTime;
 
     if (type === 'hit') {
       playBlockTapSound(now);
-
       const baseIdx = Math.min(combo % (blockBlastScale.length - 2), blockBlastScale.length - 3);
       const noteCount = Math.min(3 + Math.floor(combo / 2), 5);
-
       for (let i = 0; i < noteCount; i++) {
         const freq = blockBlastScale[baseIdx + (i % 3)];
         playMarimbaNote(freq * (1 + Math.floor(i / 3) * 0.5), now + 0.02 + i * 0.04, 0.22);
       }
-
     } else if (type === 'gold') {
       playBlockTapSound(now);
       [1046.50, 1318.51, 1567.98, 2093.00].forEach((freq, i) => {
         playMarimbaNote(freq, now + 0.02 + i * 0.05, 0.3);
       });
-
     } else if (type === 'bomb') {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -540,7 +524,6 @@
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.18);
-
     } else if (type === 'finish') {
       [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
         playMarimbaNote(freq, now + i * 0.08, 0.3);
@@ -565,15 +548,8 @@
   const playerNameInput = document.getElementById('player-name');
   const onlineRankingList = document.getElementById('online-ranking-list');
 
-  document.getElementById('start-btn').addEventListener('pointerdown', () => {
-    unlockAudio();
-    startGame();
-  });
-
-  document.getElementById('retry-btn').addEventListener('pointerdown', () => {
-    unlockAudio();
-    startGame();
-  });
+  document.getElementById('start-btn').addEventListener('pointerdown', () => { unlockAudio(); startGame(); });
+  document.getElementById('retry-btn').addEventListener('pointerdown', () => { unlockAudio(); startGame(); });
 
   updateHighScoreDisplay();
 
@@ -738,9 +714,7 @@
     triggerVibrate([150, 100, 150]);
 
     const isNewRecord = saveRecord(score);
-    if (isNewRecord) {
-      newRecordBadge.classList.remove('hidden');
-    }
+    if (isNewRecord) newRecordBadge.classList.remove('hidden');
 
     const rank = getRank(score);
     finalScoreDisplay.textContent = score.toLocaleString();
@@ -748,7 +722,6 @@
     
     updateHighScoreDisplay();
     renderHistory();
-
     resultScreen.classList.remove('hidden');
 
     try {
@@ -777,12 +750,10 @@
       localStorage.setItem('dr_highscore', s.toString());
       isNew = true;
     }
-
     const history = JSON.parse(localStorage.getItem('dr_history') || '[]');
     history.unshift(s);
     if (history.length > 3) history.pop();
     localStorage.setItem('dr_history', JSON.stringify(history));
-
     return isNew;
   }
 
