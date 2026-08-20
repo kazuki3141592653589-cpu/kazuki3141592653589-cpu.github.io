@@ -5,8 +5,8 @@
      crossorigin="anonymous"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="google-site-verification" content="UABA0hyUZsT881HyI7wKmlKBNLNexFkkQrrTSzmxyDM
-    <title>ドーパミンラッシュ (Dopamine Rush)DOPAMINE RUSH - 爽快サウンドの無料ブラウザパズルゲーム</title>
+  <meta name="google-site-verification" content="UABA0hyUZsT881HyI7wKmlKBNLNexFkkQrrTSzmxyDM">
+  <title>ドーパミンラッシュ (Dopamine Rush) - 爽快サウンドの無料ブラウザパズルゲーム</title>
   <meta name="description" content="爽快なブロック配置音とコンボ音を楽しめる無料ブラウザゲーム『DOPAMINE RUSH』。スマホやPCですぐに遊べるパズルゲーム！">
   <meta property="og:title" content="DOPAMINE RUSH">
   <meta property="og:description" content="爽快効果音のブラウザパズルゲーム">
@@ -283,6 +283,44 @@
     .online-rank-row:last-child {
       border-bottom: none;
     }
+
+    /* AdSense審査対策用テキストコンテンツエリアのデザイン */
+    .game-article {
+      width: 100%;
+      max-width: 420px;
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 15px;
+      color: #c9d1d9;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+
+    .game-article h2 {
+      font-size: 1rem;
+      color: #00f2fe;
+      margin-top: 0;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 6px;
+    }
+
+    .game-article h3 {
+      font-size: 0.9rem;
+      color: #ffd700;
+      margin: 15px 0 5px 0;
+    }
+
+    .game-article ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .game-article li {
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
@@ -346,10 +384,26 @@
   <h3>🏆 世界のオンラインランキング</h3>
   <div id="online-ranking-list" style="color: #8b949e; text-align: center; font-size: 0.8rem;">読み込み中...</div>
 </div>
-<<div style="font-size: 11px; color: #777; text-align: center; margin: 15px 0; line-height: 1.4;">
+
+<!-- Google AdSense 審査対策用テキスト解説セクション -->
+<div class="game-article">
+  <h2>DOPAMINE RUSH（ドーパミンラッシュ）とは？</h2>
+  <p>『DOPAMINE RUSH』は、制限時間内に画面に出現するターゲットを次々とタップして高得点を目指す、爽快感抜群の無料ブラウザパズルゲームです。スマホやPCのブラウザからインストール不要ですぐにプレイできます。</p>
+  
+  <h3>ゲームのルールと遊び方</h3>
+  <ul>
+    <li><strong>制限時間とスコア:</strong> 制限時間は20秒間です。素早くターゲットをタップし続けることでコンボがつながり、獲得スコアがアップします。</li>
+    <li><strong>ゴールドターゲット（🟡）:</strong> タップすると高得点に加え、制限時間が1秒回復します。ピンチのときの立て直しに重要です。</li>
+    <li><strong>爆弾ターゲット（💣）:</strong> 間違えてタップするとコンボがリセットされ、制限時間が2秒減ってしまいます。慎重かつスピーディーな判断が求められます。</li>
+    <li><strong>オンラインランキング:</strong> 自分の記録をプレイヤー名と一緒に登録し、世界中のライバルたちとハイスコアを競い合うことができます。</li>
+  </ul>
+</div>
+
+<div style="font-size: 11px; color: #777; text-align: center; margin: 15px 0; line-height: 1.4;">
     <p>当サイトでは、Cookieを使用しています。</p>
     <p><a href="privacy.html" style="color: #00f2fe; text-decoration: underline;">プライバシーポリシー</a> ｜ <a href="contact.html" style="color: #00f2fe; text-decoration: underline;">お問い合わせ</a></p>
 </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
   import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
@@ -759,4 +813,4 @@
   }
 </script>
 </body>
-  </html>
+</html>
