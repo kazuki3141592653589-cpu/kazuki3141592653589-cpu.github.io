@@ -1,13 +1,61 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>お問い合わせ</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お問い合わせ - DOPAMINE RUSH</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #0d0f12;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+    h1 {
+      font-size: 1.2rem;
+      color: #00f2fe;
+      margin-top: 0;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 10px;
+    }
+    p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    a {
+      color: #00f2fe;
+      text-decoration: underline;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
-<body style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
-    <h1>お問い合わせ</h1>
-    <p>当サイトに関するお問い合わせは、以下のメールアドレスまでお願いいたします。</p>
-    <p>メールアドレス： kazuki3.141592653589@gmail.com</p>
-    <p><a href="index.html">ゲームに戻る</a></p>
+<body>
+
+<div class="container">
+  <h1>お問い合わせ</h1>
+  <p>当サイトに関するお問い合わせは、以下のメールアドレスまでお願いいたします。</p>
+  <p>メールアドレス：<a href="mailto:kazuki314159265359@gmail.com">kazuki314159265359@gmail.com</a></p>
+  
+  <a href="index.html" class="back-link">← ゲームに戻る</a>
+</div>
+
 </body>
 </html>
